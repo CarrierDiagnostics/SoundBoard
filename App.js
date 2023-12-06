@@ -5,10 +5,13 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 
 import Login from "./login.js"
 import styles from "./styles.js"
-
+import MainPage from "./mainPage.js"
 export default function App() {
   const [socketUrl, setSocketUrl] = useState('wss://carriertech.uk:8008/');
 
+  const [viewLogin, setLogin] = useState(true);
+  const [viewSignup, setSignup] = useState(false);
+  const [viewMainPage, setMainPage] = useState(false);
   const [previousScreen, compareScreens] = React.useState("");
   const [currentScreen, onScreenChange] = React.useState("LogIn");
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
@@ -19,39 +22,28 @@ export default function App() {
     [ReadyState.CLOSED]: 'Closed',
     [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
   }[readyState];
-  
-  /*const {
-    getWebSocket,
-    status,
-    send,
-    close,
-  } = useWebSocket(socketUrl);
-  const [messages, setMessages] = useState([]);
-
   useEffect(() => {
-    if (getWebSocket()) {
-      getWebSocket().onmessage = (event) => {
-        alert("got message");
-        let tmessage = JSON.parse(event.data);
-        setMessages((prevMessages) => [...prevMessages, tmessage]);
-      };
+    screenHandler(lastMessage);
+  },[lastMessage]);
+
+
+  function screenHandler(lastMessage){
+    if(lastMessage){
+      let e = JSON.parse(lastMessage.data)["result"]
+      if (e == "build webage"){
+        setSignup(false);
+        setMainPage(true);
+        setLogin(false);
+      }
     }
-  }, [getWebSocket]);
-  */
-
-  function screenHandler(){
-
-    onScreenChange("LogIn");
-    alert(currentScreen);
-    return <Screen/>
   }
   return (
     <View style={styles.container}>
       <Text display="none">{currentScreen}</Text>
-      <Login sendMessage={sendMessage}/>
+      <Login sendMessage={sendMessage} display={viewLogin}/>
       <Text>{readyState} = {connectionStatus}</Text>
       <Text>{lastMessage ? JSON.parse(lastMessage.data)["result"]: null}</Text>
-       
+      <MainPage display={viewMainPage}/>
   
       <StatusBar style="auto" />
     </View>

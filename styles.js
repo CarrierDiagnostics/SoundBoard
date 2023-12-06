@@ -20,6 +20,10 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     margin: 10,
+  },
+  card: {
+    widht:'80%',
+    height:'100%',
   }
 });
 

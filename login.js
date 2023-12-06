@@ -3,9 +3,9 @@ import React from 'react';
 import styles from "./styles.js"
 
 
-const Login = ({sendMessage}) =>{
+const Login = ({sendMessage, display}) =>{
 
-    const sendM = sendMessage();
+    const sendM = sendMessage;
     const [email, onChangeEmail] = React.useState('');
     const [password, onChangePassword] = React.useState('');
     function handleclick(email, password){
@@ -18,7 +18,7 @@ const Login = ({sendMessage}) =>{
         alert("somethiogn is null");
       }
     }
-    
+    if (display){
       return(
         <View>
           <TextInput
@@ -38,6 +38,9 @@ const Login = ({sendMessage}) =>{
           </Button>
         </View>
       );
+    }else{
+      return;
+    }
     
   };
 
