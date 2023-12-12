@@ -20,20 +20,22 @@ const Login = ({sendMessage, display}) =>{
     }
     if (display){
       return(
-        <View>
-          <TextInput
-            style={styles.input}
-            onChangeText={email => onChangeEmail(email)}
-            placeholder="email"
-            keyboardType="email-address"
-          />
-        <TextInput secureTextEntry={true} 
-          style={styles.input} placeholder="password"
-          onChangeText={password =>onChangePassword(password)} />
-        <Button label="LogIn" 
-          email={email} password={password} 
-          onPress ={() => handleclick(email, password)}
-          title="Press Me" >
+        <View style={styles.centre}>
+          <View style={styles.inputViews}>
+            <TextInput
+              style={styles.input}
+              onChangeText={email => onChangeEmail(email)}
+              placeholder=" email"
+              keyboardType="email-address"
+            />
+            <TextInput secureTextEntry={true} 
+              style={styles.input} placeholder=" password"
+              onChangeText={password =>onChangePassword(password)} />
+            </View>
+          <Button label="LogIn" 
+            email={email} password={password} 
+            onPress ={() => handleclick(email, password)}
+            title="LogIn" >
             LogIn
           </Button>
         </View>
