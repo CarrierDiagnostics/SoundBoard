@@ -6,22 +6,22 @@ import * as FileSystem from 'expo-file-system';
 import * as Device from 'expo-device';
 import { Date } from 'expo';
 import * as SecureStore from 'expo-secure-store';
+import { useEffect } from "react";
 
 
-function MainPage({display, sendMessage, lastMessage}){
-    
+function MainPage({display, sendMessage, userData, lastMessage}){
+    //userData for calendar and rants
     const recImage = require('./assets/rec.png');
     const recStop = require('./assets/stoprec.png');
     const [recButton, changeRecState] = React.useState(recImage)
     const [recording, setRecording] = React.useState();
-    //var tempToken = null;
+    const [currentSession, handleSession] = React.useState([]);
 
-    /*if (lastMessage && lastMessage.hasOwnProperty("result") && !tempToken && lastMessage.result=="build webage"){
-        console.log(lastMessage["tempToken"]);
-        tempToken = lastMessage["tempToken"];
-        console.log("tempToken set=", tempToken);
-      }*/
-
+    useEffect(()=> {
+        if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
+            handleSession(prev => [...prev,lastMessage]);
+        }
+    },[lastMessage]);
     async function getValueFor(key) {
         let result = await SecureStore.getItemAsync(key);
         if (result) {
@@ -77,12 +77,24 @@ function MainPage({display, sendMessage, lastMessage}){
         
         console.log('Recording stopped and stored at', uri);
       }
+
+    function MainText(){
+        var mainText = [];
+        currentSession.forEach(function (x, i){
+            let t = x.data.textBox;
+            mainText.push(<Text>{t}</Text>);
+        })
+        console.log(mainText);
+        return <View>{mainText}</View>;
+    }
       
     if (display){
     return(   
         <View style={styles.container}>
             <View style={styles.MainPage}>
                 <View id="TextArea" style={styles.textArea}>
+                    <Text>Stuff should be addedd lower to this</Text>
+                    <MainText/>
                     <Text>Last Message was</Text>
                     <Text>{JSON.stringify(lastMessage)}</Text>
                 </View>

@@ -4,20 +4,19 @@ import React, { useState, useCallback, useEffect, memo } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
-
-
 import Login from "./login.js"
 import styles from "./styles.js"
 import MainPage from "./mainPage.js"
+
 export default function App() {
   const [socketUrl, setSocketUrl] = useState('wss://carriertech.uk:8008/');
-  //const [tempToken, setTempToken] = useState(false);
   var tempToken = null;
   const [viewLogin, setLogin] = useState(true);
   const [viewSignup, setSignup] = useState(false);
   const [viewMainPage, setMainPage] = useState(false);
   const [previousScreen, compareScreens] = React.useState("");
   const [currentScreen, onScreenChange] = React.useState("LogIn");
+  const [userData, setUserData] = React.useState(null);
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
   const temp = {"test":"test"};
   const connectionStatus = {
@@ -35,10 +34,11 @@ export default function App() {
     if(lastMessage){
  
       let e = JSON.parse(lastMessage.data);
-      if (e.result == "build webage"){
+      if (e.result == "build webage" && viewMainPage!=true){
         console.log(e["tempToken"]);
         //setTempToken(e["tempToken"]);
         save("tempToken", e["tempToken"]);
+        setUserData(e.data);
         setSignup(false);
         setMainPage(true);
         setLogin(false);
@@ -55,7 +55,7 @@ export default function App() {
       
       <Login sendMessage={sendMessage} display={viewLogin}/>
       <Text>{readyState} = {connectionStatus}</Text>
-      <MainPage display={viewMainPage} sendMessage={sendMessage}  lastMessage={lastMessage ? JSON.parse(lastMessage.data):null}/>
+      <MainPage display={viewMainPage} sendMessage={sendMessage} userData ={userData}  lastMessage={lastMessage ? JSON.parse(lastMessage.data):null}/>
       <StatusBar style="auto" />
     </View>
   );
