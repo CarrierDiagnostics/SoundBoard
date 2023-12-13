@@ -16,7 +16,13 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     const [recButton, changeRecState] = React.useState(recImage)
     const [recording, setRecording] = React.useState();
     const [currentSession, handleSession] = React.useState([]);
-
+    const [viewScreen, setViewScreen] = React.useState({
+      "interactPage":true,
+      "calendar":false,
+      "organise":false,
+      "analysis":false,
+      "settings":false
+    })
     useEffect(()=> {
         if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
             handleSession(prev => [...prev,lastMessage]);
@@ -81,31 +87,45 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     function MainText(){
         var mainText = [];
         currentSession.forEach(function (x, i){
-            let t = x.data.textBox;
-            mainText.push(<Text>{t}</Text>);
+            let t = x.data.textBox.replace(/<br>/g,'');
+            mainText.push(<Text key={i}>{t}</Text>);
         })
         console.log(mainText);
         return <View>{mainText}</View>;
     }
-      
+    function InteractPage(){
+      if (viewScreen.interactPage){
+        return (
+          <View style={styles.MainPage}>
+          <View id="TextArea" style={styles.textArea}>
+              <Text>Stuff should be addedd lower to this</Text>
+              <MainText/>
+              <Text>Last Message was</Text>
+              <Text>{JSON.stringify(lastMessage)}</Text>
+          </View>
+          <View id="ButtonArea" style={styles.buttonArea}>
+              <Pressable onPress={record} >
+              <Image style={styles.recImage} source={recButton} resizeMode="contain" />
+              </Pressable>
+          </View>
+      </View>
+        )
+      }
+    }
+
+    function CalendarPage(){
+      if (viewScreen.calendar) console.log(' do the calendar')
+    }
+  function changeScreen(toTrue){
+    console.log(toTrue);
+  }
     if (display){
     return(   
         <View style={styles.container}>
-            <View style={styles.MainPage}>
-                <View id="TextArea" style={styles.textArea}>
-                    <Text>Stuff should be addedd lower to this</Text>
-                    <MainText/>
-                    <Text>Last Message was</Text>
-                    <Text>{JSON.stringify(lastMessage)}</Text>
-                </View>
-                <View id="ButtonArea" style={styles.buttonArea}>
-                    <Pressable onPress={record} >
-                    <Image style={styles.recImage} source={recButton} resizeMode="contain" />
-                    </Pressable>
-                </View>
-            </View>
+            <InteractPage />
+
             <View style={styles.footer}>
-                <Button title="Calendar" style={styles.footerButton}/>
+                <Button id='calendar' title="Calendar" style={styles.footerButton} onPress={changeScreen(this.id)}/>
                 <Button title="Main" style={styles.footerButton}/>
                 <Button title="Organise" style={styles.footerButton}/>
                 <Button title="Analysis" style={styles.footerButton}/>
