@@ -43,6 +43,11 @@ const styles = StyleSheet.create({
         width:"100%",
         backgroundColor: 'grey',
     },
+    CalendarPage: {
+        flex:9,
+        alignItems: "stretch",
+        justifyContent:"center",
+    },
     footer: {
         flex:1,
         flexDirection:"row",

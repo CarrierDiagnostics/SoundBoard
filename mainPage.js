@@ -1,4 +1,4 @@
-import {Text, View, ScrollView, Button,Pressable, Image} from "react-native"
+import {Text, View, ScrollView, Button,Pressable, Image, FlatList} from "react-native"
 import React, { useState } from 'react';
 import styles from "./styles.js"
 import { Audio } from 'expo-av';
@@ -7,6 +7,7 @@ import * as Device from 'expo-device';
 import { Date } from 'expo';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect } from "react";
+import { Calendar } from 'react-native-calendars';
 
 
 function MainPage({display, sendMessage, userData, lastMessage}){
@@ -23,6 +24,11 @@ function MainPage({display, sendMessage, userData, lastMessage}){
       "analysis":false,
       "settings":false
     })
+    const [viewCalendar, setCalendar] = React.useState(false);
+    const [viewInteractPage, setInteractPage] = React.useState(false);
+    const [viewOrganise, setOrganise] = React.useState(false);
+    const [viewAnalysis, setAnalysis] = React.useState(false);
+    const [viewSettings, setSettings] = React.useState(false);
     useEffect(()=> {
         if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
             handleSession(prev => [...prev,lastMessage]);
@@ -94,6 +100,7 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         return <View>{mainText}</View>;
     }
     function InteractPage(){
+        
       if (viewScreen.interactPage){
         return (
           <View style={styles.MainPage}>
@@ -114,22 +121,40 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     }
 
     function CalendarPage(){
-      if (viewScreen.calendar) console.log(' do the calendar')
+      if (viewScreen.calendar) return(<View style={styles.CalendarPage}><Calendar 
+        markedDates={{
+            '2023-12-01': {selected: true,  selectedColor: 'red'},
+            '2023-12-02': {marked: true},
+            '2023-12-03': {selected: true, selectedColor: 'blue'}
+          }}  /></View>)
     }
-  function changeScreen(toTrue){
-    console.log(toTrue);
-  }
+    function changeScreen(e){
+        let tempO = {};
+        for (let [k,v] of Object.entries(viewScreen)){
+            if (k==e) {
+                tempO[k]=true;
+            }else{ tempO[k]=false;}
+        }
+        setViewScreen(tempO);
+        
+    }
     if (display){
     return(   
         <View style={styles.container}>
             <InteractPage />
-
+            <CalendarPage />
             <View style={styles.footer}>
-                <Button id='calendar' title="Calendar" style={styles.footerButton} onPress={changeScreen(this.id)}/>
-                <Button title="Main" style={styles.footerButton}/>
-                <Button title="Organise" style={styles.footerButton}/>
-                <Button title="Analysis" style={styles.footerButton}/>
-                <Button title="Settings" style={styles.footerButton}/>
+                <Button id='calendar' title="Calendar" 
+                    style={styles.footerButton}
+                    onPress={()=>changeScreen('calendar')}/>
+                <Button title="Main" 
+                    style={styles.footerButton} 
+                    onPress={()=>changeScreen('interactPage')}/>
+                <Button title="Organise" 
+                    style={styles.footerButton} 
+                    onPress={()=>changeScreen('organise')}/>
+                <Button title="Analysis" style={styles.footerButton} onPress={()=>changeScreen('analysis')}/>
+                <Button title="Settings" style={styles.footerButton} onPress={()=>changeScreen('settings')}/>
             </View>
         </View>
            
