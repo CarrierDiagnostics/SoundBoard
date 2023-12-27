@@ -30,15 +30,23 @@ export default function App() {
     screenHandler(lastMessage);
   },[lastMessage]);
 
+  function cleanUserData(userData){
+    let temp = {}
+    for (let [k,v] of Object.entries(userData.data)){
+      k = k.split(")")[1].split("_");
+      k = k[4]+"-"+k[2]+"-"+k[1];
+      temp[k] = v;
+    }
+    setUserData(temp);
+  }
   function screenHandler(lastMessage){
     if(lastMessage){
  
       let e = JSON.parse(lastMessage.data);
       if (e.result == "build webage" && viewMainPage!=true){
         console.log(e["tempToken"]);
-        //setTempToken(e["tempToken"]);
         save("tempToken", e["tempToken"]);
-        setUserData(e.data);
+        cleanUserData(e.data);
         setSignup(false);
         setMainPage(true);
         setLogin(false);

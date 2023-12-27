@@ -8,6 +8,7 @@ import { Date } from 'expo';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect } from "react";
 import { Calendar } from 'react-native-calendars';
+import DateObject from "react-date-object";
 
 
 function MainPage({display, sendMessage, userData, lastMessage}){
@@ -23,12 +24,23 @@ function MainPage({display, sendMessage, userData, lastMessage}){
       "organise":false,
       "analysis":false,
       "settings":false
-    })
+    });
+
     const [viewCalendar, setCalendar] = React.useState(false);
     const [viewInteractPage, setInteractPage] = React.useState(false);
     const [viewOrganise, setOrganise] = React.useState(false);
     const [viewAnalysis, setAnalysis] = React.useState(false);
     const [viewSettings, setSettings] = React.useState(false);
+    const emotionColours = {'neutral':{"colour": "#808080", "val":{"speechEmotion":1, "textEmotion":1}}, 
+    'calm': {"colour": "#75945b", "colourRGB":[117,148,91], "val":{"speechEmotion":1, "textEmotion":1}}, 
+    'happy': {"colour": "#fff761", "colourRGB":[255,247,97],"val":{"speechEmotion":1, "textEmotion":1}}, 
+    'sad' : {"colour": "#6e79ff", "colourRGB":[110,121,255],"val":{"speechEmotion":1, "textEmotion":1}}, 
+    'angry' : {"colour": "#ff4313","colourRGB":[255,67,19], "val":{"speechEmotion":1, "textEmotion":1}}, 
+    'fear' : {"colour": "#ff8c2d","colourRGB":[255,140,45], "val":{"speechEmotion":1, "textEmotion":1}}, 
+    'disgust' : {"colour": "#e564df","colourRGB":[229,100,223], "val":{"speechEmotion":1, "textEmotion":1}}, 
+    'surprise' : {"colour": "#24c9ff","colourRGB":[36,201,255], "val":{"speechEmotion":1, "textEmotion":1}}, 
+    'love' : {"colour": "#f3cec9","colourRGB":[243,206,201], "val":{"speechEmotion":1, "textEmotion":1}}};
+    const [organiseUserData, setUserData] = React.useState(null);
     useEffect(()=> {
         if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
             handleSession(prev => [...prev,lastMessage]);
@@ -87,7 +99,6 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         let theFile = await FileSystem.readAsStringAsync(uri, fileOptions );
         sendMessage(theFile);
         
-        console.log('Recording stopped and stored at', uri);
       }
 
     function MainText(){
@@ -96,7 +107,6 @@ function MainPage({display, sendMessage, userData, lastMessage}){
             let t = x.data.textBox.replace(/<br>/g,'');
             mainText.push(<Text key={i}>{t}</Text>);
         })
-        console.log(mainText);
         return <View>{mainText}</View>;
     }
     function InteractPage(){
@@ -119,14 +129,75 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         )
       }
     }
+    var today = new DateObject().format("YYYY-MM-DD");
+    const [dayMoods, setDayMoods] = React.useState();
+    const [cYearMonth, setcYearMonth] = React.useState(today);
+    const [markedDates, setMarkedDates] = React.useState(today);
+    useEffect(()=> {
+      console.log("get emotions for the month");
+      if (userData){
+      console.log("current month is = ",cYearMonth);
+        setMonthEmotions(userData);
 
-    function CalendarPage(){
-      if (viewScreen.calendar) return(<View style={styles.CalendarPage}><Calendar 
-        markedDates={{
-            '2023-12-01': {selected: true,  selectedColor: 'red'},
-            '2023-12-02': {marked: true},
-            '2023-12-03': {selected: true, selectedColor: 'blue'}
-          }}  /></View>)
+      }
+    },[cYearMonth]);
+    function CalendarPage(){ //redo by getting all dates, not just this month, then no need to re-render
+      console.log("marked date = ",markedDates);
+      if (viewScreen.calendar) return(
+      <View style={styles.CalendarPage}>
+        <Calendar 
+            initialDate={cYearMonth}
+            onMonthChange={month => {
+              console.log("month changed",month["dateString"]);
+              setcYearMonth(month["dateString"]);
+            }}
+            markedDates={markedDates}  
+        /></View>)
+    }
+    function setEmotionData(userData){
+      let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
+
+      for (let [k,v] of Object.entries(userData)){
+            let tempEmotionList = [];
+            let tHighEmtion = 0;
+            let tHighNum = 0;
+            for (let [ke, ve] of Object.entries(v["textEmotion"])){
+              if (ve > tHighNum){
+                tHighEmtion = ke;
+                tHighNum = ve;
+              }
+            tmarkedDates[k] = {"selected": true, "selectedColor":emotionColours[tHighEmtion]["colour"]};//;
+      
+              
+          }
+        }
+      console.log("finished marking dates");
+      console.log(tmarkedDates);
+      setMarkedDates(tmarkedDates);
+    }
+    function setMonthEmotions(userData){
+      let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
+
+      for (let [k,v] of Object.entries(userData)){
+          if(k.includes(cYearMonth.substring(0,7))){ //get only dates in selected month
+              //for (let [kd,vd] of Object.entries(v)){ // iterate over days
+                let tempEmotionList = [];
+                let tHighEmtion = 0;
+                let tHighNum = 0;
+                for (let [ke, ve] of Object.entries(v["textEmotion"])){
+                  if (ve > tHighNum){
+                    tHighEmtion = ke;
+                    tHighNum = ve;
+                  }
+                tmarkedDates[k] = {"selected": true, "selectedColor":emotionColours[tHighEmtion]["colour"]};//;
+                }
+              //}
+              
+          }
+        }
+      console.log("finished marking dates");
+      console.log(tmarkedDates);
+      setMarkedDates(tmarkedDates);
     }
     function changeScreen(e){
         let tempO = {};
@@ -138,11 +209,26 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         setViewScreen(tempO);
         
     }
+    function OrganisePage(){
+      if (viewScreen.organise){
+        return(
+          <View>
+            
+          </View>
+      )
+      }
+    }
+
     if (display){
+      if (!organiseUserData){
+        console.log("user data has been org = ",!organiseUserData);
+
+      }
     return(   
         <View style={styles.container}>
             <InteractPage />
             <CalendarPage />
+            <OrganisePage />
             <View style={styles.footer}>
                 <Button id='calendar' title="Calendar" 
                     style={styles.footerButton}
