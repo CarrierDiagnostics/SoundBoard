@@ -40,7 +40,7 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     'disgust' : {"colour": "#e564df","colourRGB":[229,100,223], "val":{"speechEmotion":1, "textEmotion":1}}, 
     'surprise' : {"colour": "#24c9ff","colourRGB":[36,201,255], "val":{"speechEmotion":1, "textEmotion":1}}, 
     'love' : {"colour": "#f3cec9","colourRGB":[243,206,201], "val":{"speechEmotion":1, "textEmotion":1}}};
-    const [organiseUserData, setUserData] = React.useState(null);
+    const [organiseUserData, setUserData] = React.useState(false);
     useEffect(()=> {
         if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
             handleSession(prev => [...prev,lastMessage]);
@@ -133,24 +133,24 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     const [dayMoods, setDayMoods] = React.useState();
     const [cYearMonth, setcYearMonth] = React.useState(today);
     const [markedDates, setMarkedDates] = React.useState(today);
-    useEffect(()=> {
+    /*useEffect(()=> {
       console.log("get emotions for the month");
       if (userData){
       console.log("current month is = ",cYearMonth);
         setMonthEmotions(userData);
 
       }
-    },[cYearMonth]);
+    },[cYearMonth]);*/
     function CalendarPage(){ //redo by getting all dates, not just this month, then no need to re-render
       console.log("marked date = ",markedDates);
       if (viewScreen.calendar) return(
       <View style={styles.CalendarPage}>
         <Calendar 
-            initialDate={cYearMonth}
+            /*initialDate={cYearMonth}
             onMonthChange={month => {
               console.log("month changed",month["dateString"]);
               setcYearMonth(month["dateString"]);
-            }}
+            }}*/
             markedDates={markedDates}  
         /></View>)
     }
@@ -175,7 +175,7 @@ function MainPage({display, sendMessage, userData, lastMessage}){
       console.log(tmarkedDates);
       setMarkedDates(tmarkedDates);
     }
-    function setMonthEmotions(userData){
+    /*function setMonthEmotions(userData){
       let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
 
       for (let [k,v] of Object.entries(userData)){
@@ -198,7 +198,7 @@ function MainPage({display, sendMessage, userData, lastMessage}){
       console.log("finished marking dates");
       console.log(tmarkedDates);
       setMarkedDates(tmarkedDates);
-    }
+    }*/
     function changeScreen(e){
         let tempO = {};
         for (let [k,v] of Object.entries(viewScreen)){
@@ -222,6 +222,8 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     if (display){
       if (!organiseUserData){
         console.log("user data has been org = ",!organiseUserData);
+        setEmotionData(userData);
+        setUserData(markedDates);
 
       }
     return(   
