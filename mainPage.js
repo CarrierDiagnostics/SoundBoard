@@ -1,4 +1,4 @@
-import {Text, View, ScrollView, Button,Pressable, Image, FlatList} from "react-native"
+import {Text, View, ScrollView, Button,Pressable, Image, SectionList} from "react-native"
 import React, { useState } from 'react';
 import styles from "./styles.js"
 import { Audio } from 'expo-av';
@@ -115,10 +115,14 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         return (
           <View style={styles.MainPage}>
           <View id="TextArea" style={styles.textArea}>
-              <Text>Stuff should be addedd lower to this</Text>
-              <MainText/>
-              <Text>Last Message was</Text>
-              <Text>{JSON.stringify(lastMessage)}</Text>
+          <SectionList sections={dialogData} 
+          renderItem={({item}) => <Text style={styles.item}>{item}</Text>}
+          renderSectionHeader={({section}) => (
+            <Text style={styles.sectionHeader}>{section.title}</Text>
+          )}
+          keyExtractor={item => `basicListEntry-${item}`}
+          
+        />
           </View>
           <View id="ButtonArea" style={styles.buttonArea}>
               <Pressable onPress={record} >
@@ -133,6 +137,7 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     const [dayMoods, setDayMoods] = React.useState();
     const [cYearMonth, setcYearMonth] = React.useState(today);
     const [markedDates, setMarkedDates] = React.useState(today);
+    const [dialogData, setDialogData] = React.useState(null);
     /*useEffect(()=> {
       console.log("get emotions for the month");
       if (userData){
@@ -156,11 +161,24 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     }
     function setEmotionData(userData){
       let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
-
+      let tDateHolder = 0;
+      let tDialogData = []; // for textBox and llmresponse
+      let tSubsection = {title:null};
+ 
       for (let [k,v] of Object.entries(userData)){
-            let tempEmotionList = [];
+            //let tempEmotionList = [];
             let tHighEmtion = 0;
             let tHighNum = 0;
+            console.log(k);
+            console.log(v['textBox']);
+            console.log(v['llmresponse']);
+
+            if (tSubsection['title']!= k){
+              if(tSubsection['title']){tDialogData.push(tSubsection)}
+              tSubsection = {title:k, data:[]};
+            }
+            tSubsection['data'].push(v['textBox'].replace('<br>',''));
+            tSubsection['data'].push(v['llmresponse']);
             for (let [ke, ve] of Object.entries(v["textEmotion"])){
               if (ve > tHighNum){
                 tHighEmtion = ke;
@@ -172,8 +190,9 @@ function MainPage({display, sendMessage, userData, lastMessage}){
           }
         }
       console.log("finished marking dates");
-      console.log(tmarkedDates);
+      console.log(tDialogData);
       setMarkedDates(tmarkedDates);
+      setDialogData(tDialogData);
     }
     /*function setMonthEmotions(userData){
       let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
@@ -221,7 +240,8 @@ function MainPage({display, sendMessage, userData, lastMessage}){
 
     if (display){
       if (!organiseUserData){
-        console.log("user data has been org = ",!organiseUserData);
+        //console.log("user data has been org = ",!organiseUserData);
+        //console.log(userData);
         setEmotionData(userData);
         setUserData(markedDates);
 
