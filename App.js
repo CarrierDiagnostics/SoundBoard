@@ -44,7 +44,6 @@ export default function App() {
  
       let e = JSON.parse(lastMessage.data);
       if (e.result == "build webage" && viewMainPage!=true){
-        console.log(e["tempToken"]);
         save("tempToken", e["tempToken"]);
         cleanUserData(e.data);
         setSignup(false);

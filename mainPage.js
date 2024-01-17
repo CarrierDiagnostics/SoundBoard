@@ -1,5 +1,5 @@
-import {Text, View, ScrollView, Button,Pressable, Image, SectionList} from "react-native"
-import React, { useState } from 'react';
+import {Text, View, ScrollView, FlatList, Button,Pressable, Image, SectionList} from "react-native"
+import React, { useState, useRef, useCallback } from 'react';
 import styles from "./styles.js"
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
@@ -9,9 +9,12 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect } from "react";
 import { Calendar } from 'react-native-calendars';
 import DateObject from "react-date-object";
+import { useCalendarPermissions } from "expo-calendar";
+import { GiftedChat } from 'react-native-gifted-chat'
 
 
 function MainPage({display, sendMessage, userData, lastMessage}){
+    
     //userData for calendar and rants
     const recImage = require('./assets/rec.png');
     const recStop = require('./assets/stoprec.png');
@@ -26,6 +29,14 @@ function MainPage({display, sendMessage, userData, lastMessage}){
       "settings":false
     });
 
+    var today = new DateObject().format("YYYY-MM-DD");
+    const [dayMoods, setDayMoods] = React.useState();
+    const [cYearMonth, setcYearMonth] = React.useState(today);
+    const [markedDates, setMarkedDates] = React.useState(today);
+    const [dialogData, setDialogData] = React.useState(null);
+    const [textBoxData, setTBD] = React.useState(null)
+    const [todayText, setTodayText] = React.useState([]);
+    const [publishTextBoxData, setPTBD] = React.useState([]);
     const [viewCalendar, setCalendar] = React.useState(false);
     const [viewInteractPage, setInteractPage] = React.useState(false);
     const [viewOrganise, setOrganise] = React.useState(false);
@@ -41,10 +52,22 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     'surprise' : {"colour": "#24c9ff","colourRGB":[36,201,255], "val":{"speechEmotion":1, "textEmotion":1}}, 
     'love' : {"colour": "#f3cec9","colourRGB":[243,206,201], "val":{"speechEmotion":1, "textEmotion":1}}};
     const [organiseUserData, setUserData] = React.useState(false);
+    const textBoxRef = useRef(null);
+    const todayTextRef = useRef(null);
+    const [STT, setSTT] = React.useState("");
+    const [llmresponse, setllmresponse] = React.useState("");
     useEffect(()=> {
         if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
+            let tdd = dialogData;
+            tdd.at(-1)['data'].push(lastMessage["data"]["textBox"].replace(/<br>/g,""));
+            tdd.at(-1)['data'].push(lastMessage["data"]["llmresponse"]);
+            setTodayText([...todayText, lastMessage["data"]["textBox"].replace(/<br>/g,""), lastMessage["data"]["llmresponse"]])
             handleSession(prev => [...prev,lastMessage]);
+            setDialogData(tdd);
+            setSTT(lastMessage["data"]["textBox"].replace(/<br>/g,""));
+            setllmresponse(lastMessage["data"]["llmresponse"]);
         }
+       
     },[lastMessage]);
     async function getValueFor(key) {
         let result = await SecureStore.getItemAsync(key);
@@ -100,85 +123,83 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         sendMessage(theFile);
         
       }
+    
 
-    function MainText(){
-        var mainText = [];
-        currentSession.forEach(function (x, i){
-            let t = x.data.textBox.replace(/<br>/g,'');
-            mainText.push(<Text key={i}>{t}</Text>);
-        })
-        return <View>{mainText}</View>;
-    }
-    function InteractPage(){
-        
-      if (viewScreen.interactPage){
-        return (
-          <View style={styles.MainPage}>
-          <View id="TextArea" style={styles.textArea}>
-          <SectionList sections={dialogData} 
-          renderItem={({item}) => <Text style={styles.item}>{item}</Text>}
-          renderSectionHeader={({section}) => (
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-          )}
-          keyExtractor={item => `basicListEntry-${item}`}
-          
-        />
-          </View>
-          <View id="ButtonArea" style={styles.buttonArea}>
+    const ButtonArea = React.memo(() => {
+      return(
+        <View id="ButtonArea" style={styles.buttonArea}>
               <Pressable onPress={record} >
               <Image style={styles.recImage} source={recButton} resizeMode="contain" />
               </Pressable>
           </View>
+      )
+    })
+
+  
+
+    const InteractPage = React.memo(() => {
+      /* onViewableItemsChanged={()=> {
+                console.log("i changed size")
+                textBoxRef?.current?.scrollToEnd({animated:false})}}
+     */
+      if (viewScreen.interactPage){
+        return (
+          <View style={styles.MainPage}>
+          <View id="TextArea" style={styles.textArea}>
+            <FlatList
+              ref = {textBoxRef}
+              data={textBoxData}
+              renderItem={({item}) => <Text>{item}</Text> }
+              
+              inverted={false}
+        
+            />
+             <FlatList
+              ref = {todayTextRef}
+              data={todayText}
+              renderItem={({item}) => <Text>{item}</Text> }
+              onContentSizeChange={()=> todayTextRef?.current?.scrollToEnd({animated:false})}
+              inverted={false}
+              extraData={todayText}
+            />
+          </View>
+          <ButtonArea />
       </View>
         )
       }
-    }
-    var today = new DateObject().format("YYYY-MM-DD");
-    const [dayMoods, setDayMoods] = React.useState();
-    const [cYearMonth, setcYearMonth] = React.useState(today);
-    const [markedDates, setMarkedDates] = React.useState(today);
-    const [dialogData, setDialogData] = React.useState(null);
-    /*useEffect(()=> {
-      console.log("get emotions for the month");
-      if (userData){
-      console.log("current month is = ",cYearMonth);
-        setMonthEmotions(userData);
-
-      }
-    },[cYearMonth]);*/
-    function CalendarPage(){ //redo by getting all dates, not just this month, then no need to re-render
-      console.log("marked date = ",markedDates);
+    });
+    
+    function CalendarPage(){ 
       if (viewScreen.calendar) return(
       <View style={styles.CalendarPage}>
-        <Calendar 
-            /*initialDate={cYearMonth}
-            onMonthChange={month => {
-              console.log("month changed",month["dateString"]);
-              setcYearMonth(month["dateString"]);
-            }}*/
-            markedDates={markedDates}  
-        /></View>)
+        <Calendar markedDates={markedDates}/>
+      </View>)
     }
     function setEmotionData(userData){
+      console.log("setEMotioNData should only be calledo nce");
       let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
-      let tDateHolder = 0;
       let tDialogData = []; // for textBox and llmresponse
       let tSubsection = {title:null};
- 
+      let tempTextBox = []
+      
+      let tID = 0;
       for (let [k,v] of Object.entries(userData)){
-            //let tempEmotionList = [];
             let tHighEmtion = 0;
             let tHighNum = 0;
-            console.log(k);
-            console.log(v['textBox']);
-            console.log(v['llmresponse']);
 
             if (tSubsection['title']!= k){
-              if(tSubsection['title']){tDialogData.push(tSubsection)}
+              if(tSubsection['title']){
+                tempTextBox.push(k);
+                tID++; 
+                tDialogData.push(tSubsection)}
               tSubsection = {title:k, data:[]};
             }
             tSubsection['data'].push(v['textBox'].replace('<br>',''));
             tSubsection['data'].push(v['llmresponse']);
+            tempTextBox.push(v['textBox'].replace(/<br>/g,''));
+            tID++;
+            tempTextBox.push(v['llmresponse']);
+            tID++;
             for (let [ke, ve] of Object.entries(v["textEmotion"])){
               if (ve > tHighNum){
                 tHighEmtion = ke;
@@ -189,35 +210,14 @@ function MainPage({display, sendMessage, userData, lastMessage}){
               
           }
         }
-      console.log("finished marking dates");
-      console.log(tDialogData);
+      tempTextBox.push("Today");
+      tDialogData.push({title:"Today",data:[]})
       setMarkedDates(tmarkedDates);
       setDialogData(tDialogData);
-    }
-    /*function setMonthEmotions(userData){
-      let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
+      setTBD(tempTextBox);
 
-      for (let [k,v] of Object.entries(userData)){
-          if(k.includes(cYearMonth.substring(0,7))){ //get only dates in selected month
-              //for (let [kd,vd] of Object.entries(v)){ // iterate over days
-                let tempEmotionList = [];
-                let tHighEmtion = 0;
-                let tHighNum = 0;
-                for (let [ke, ve] of Object.entries(v["textEmotion"])){
-                  if (ve > tHighNum){
-                    tHighEmtion = ke;
-                    tHighNum = ve;
-                  }
-                tmarkedDates[k] = {"selected": true, "selectedColor":emotionColours[tHighEmtion]["colour"]};//;
-                }
-              //}
-              
-          }
-        }
-      console.log("finished marking dates");
-      console.log(tmarkedDates);
-      setMarkedDates(tmarkedDates);
-    }*/
+    }
+
     function changeScreen(e){
         let tempO = {};
         for (let [k,v] of Object.entries(viewScreen)){
@@ -240,13 +240,12 @@ function MainPage({display, sendMessage, userData, lastMessage}){
 
     if (display){
       if (!organiseUserData){
-        //console.log("user data has been org = ",!organiseUserData);
-        //console.log(userData);
         setEmotionData(userData);
         setUserData(markedDates);
+        console.log("I should only be called once");
 
       }
-    return(   
+    return(  
         <View style={styles.container}>
             <InteractPage />
             <CalendarPage />
