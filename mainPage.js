@@ -11,6 +11,9 @@ import { Calendar } from 'react-native-calendars';
 import DateObject from "react-date-object";
 import { useCalendarPermissions } from "expo-calendar";
 import { GiftedChat } from 'react-native-gifted-chat'
+import 'react-native-get-random-values';
+
+import { v4 as uuidv4 } from 'uuid';
 
 
 function MainPage({display, sendMessage, userData, lastMessage}){
@@ -56,6 +59,7 @@ function MainPage({display, sendMessage, userData, lastMessage}){
     const todayTextRef = useRef(null);
     const [STT, setSTT] = React.useState("");
     const [llmresponse, setllmresponse] = React.useState("");
+    const [messages, setMessages] = useState([])
     useEffect(()=> {
         if (lastMessage && lastMessage.hasOwnProperty("result") && lastMessage.result == "add text"){
             let tdd = dialogData;
@@ -64,8 +68,21 @@ function MainPage({display, sendMessage, userData, lastMessage}){
             setTodayText([...todayText, lastMessage["data"]["textBox"].replace(/<br>/g,""), lastMessage["data"]["llmresponse"]])
             handleSession(prev => [...prev,lastMessage]);
             setDialogData(tdd);
-            setSTT(lastMessage["data"]["textBox"].replace(/<br>/g,""));
-            setllmresponse(lastMessage["data"]["llmresponse"]);
+            setMessages([...messages,
+              MakeMsg(
+                uuidv4(),
+                lastMessage["data"]["textBox"].replace(/<br>/g,""),
+                new DateObject().format("YYYY-MM-DDTHH:mm:ss"),
+                1,
+                "User"
+              ),
+              MakeMsg(
+                uuidv4(),
+                lastMessage["data"]["llmresponse"],
+                new DateObject().format("YYYY-MM-DDTHH:mm:ss"),
+                2,
+                "AI Response"
+              )])
         }
        
     },[lastMessage]);
@@ -135,33 +152,27 @@ function MainPage({display, sendMessage, userData, lastMessage}){
       )
     })
 
-  
+  const The_chat = React.memo(() => {
+    return(
+      <GiftedChat
+              messages={messages}
+              onSend={messages => onSend(messages)}
+              user={{
+                _id: 1,
+              }}
+              inverted={false}
+              scrollToBottom={true}
+            />
+    )
+  });
 
     const InteractPage = React.memo(() => {
-      /* onViewableItemsChanged={()=> {
-                console.log("i changed size")
-                textBoxRef?.current?.scrollToEnd({animated:false})}}
-     */
       if (viewScreen.interactPage){
         return (
           <View style={styles.MainPage}>
           <View id="TextArea" style={styles.textArea}>
-            <FlatList
-              ref = {textBoxRef}
-              data={textBoxData}
-              renderItem={({item}) => <Text>{item}</Text> }
-              
-              inverted={false}
-        
-            />
-             <FlatList
-              ref = {todayTextRef}
-              data={todayText}
-              renderItem={({item}) => <Text>{item}</Text> }
-              onContentSizeChange={()=> todayTextRef?.current?.scrollToEnd({animated:false})}
-              inverted={false}
-              extraData={todayText}
-            />
+            <The_chat/>
+            
           </View>
           <ButtonArea />
       </View>
@@ -175,13 +186,27 @@ function MainPage({display, sendMessage, userData, lastMessage}){
         <Calendar markedDates={markedDates}/>
       </View>)
     }
+
+    function MakeMsg(tLenght,text,the_date, uID, uName){
+      return({
+        _id: tLenght,
+        text: text,
+        createdAt: the_date,
+        user: {
+          _id: uID,
+          name: uName,
+          avatar: 'https://placeimg.com/140/140/any',
+        }
+      })
+    }
+
     function setEmotionData(userData){
       console.log("setEMotioNData should only be calledo nce");
       let tmarkedDates = {};  //Currently using textEmotion for emotion data, to change to prosody when ready. Also just using highest number to determine rants emotion and then median for days emotion
       let tDialogData = []; // for textBox and llmresponse
       let tSubsection = {title:null};
       let tempTextBox = []
-      
+      let msg = {}
       let tID = 0;
       for (let [k,v] of Object.entries(userData)){
             let tHighEmtion = 0;
@@ -189,17 +214,20 @@ function MainPage({display, sendMessage, userData, lastMessage}){
 
             if (tSubsection['title']!= k){
               if(tSubsection['title']){
-                tempTextBox.push(k);
-                tID++; 
+        
                 tDialogData.push(tSubsection)}
               tSubsection = {title:k, data:[]};
             }
-            tSubsection['data'].push(v['textBox'].replace('<br>',''));
+            tSubsection['data'].push(v['textBox'].replace(/<br>/g,''));
             tSubsection['data'].push(v['llmresponse']);
-            tempTextBox.push(v['textBox'].replace(/<br>/g,''));
-            tID++;
-            tempTextBox.push(v['llmresponse']);
-            tID++;
+            
+            tempTextBox.push(MakeMsg(uuidv4(),
+                v['textBox'].replace(/<br>/g,''),
+                k, 1, "User"));
+            
+            tempTextBox.push(MakeMsg(uuidv4(),
+              v['llmresponse'],
+              k, 2, "AI response"));
             for (let [ke, ve] of Object.entries(v["textEmotion"])){
               if (ve > tHighNum){
                 tHighEmtion = ke;
@@ -210,12 +238,10 @@ function MainPage({display, sendMessage, userData, lastMessage}){
               
           }
         }
-      tempTextBox.push("Today");
       tDialogData.push({title:"Today",data:[]})
       setMarkedDates(tmarkedDates);
       setDialogData(tDialogData);
-      setTBD(tempTextBox);
-
+      setMessages(tempTextBox);
     }
 
     function changeScreen(e){
